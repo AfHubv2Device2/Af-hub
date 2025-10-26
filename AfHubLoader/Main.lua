@@ -102,6 +102,7 @@ loadingFrame:Destroy()
 ----------------------------------------------------
 -- 🔻 ZenX Hub Main UI
 ----------------------------------------------------
+-- Fixed Icon Creation
 local icon = Instance.new("TextButton")
 icon.Name = "ZenX_Hub_Icon"
 icon.Size = UDim2.fromOffset(56, 56)
@@ -113,7 +114,8 @@ icon.TextSize = 14
 icon.TextColor3 = Color3.fromRGB(255, 255, 255)
 icon.TextScaled = true
 icon.TextWrapped = true
-icon.ZIndex = 2
+icon.ZIndex = 10         -- increased ZIndex to ensure clicks
+icon.Active = true       -- ensure input detection
 icon.Parent = gui
 Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
 local iconStroke = Instance.new("UIStroke", icon)
@@ -219,120 +221,95 @@ local function createDropdown(name, options, posY)
     label.Position = UDim2.new(0, 30, 0, posY)
     label.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.GothamBold
     label.TextSize = 14
-    label.Text = name..": "..options[1]
+    label.Font = Enum.Font.Gotham
+    label.Text = name .. ": " .. options[1]
     label.Parent = main
     Instance.new("UICorner", label).CornerRadius = UDim.new(0, 6)
-    local selected = options[1]
+    local state = false
 
-    label.MouseButton1Click:Connect(function()
-        local idx = table.find(options, selected)
-        idx = (idx % #options) + 1
-        selected = options[idx]
-        label.Text = name..": "..selected
-        selectedWeapon = selected
-    end)
-end
-
-createDropdown("Weapon", {"Melee Sword", "Sword", "Gun", "Blox Fruits"}, 180)
-
-local function createSlider(name, min, max, posY)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 140, 0, 28)
-    frame.Position = UDim2.new(0, 30, 0, posY)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    frame.Parent = main
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
-
-    local slider = Instance.new("TextLabel")
-    slider.Size = UDim2.new(1, 0, 1, 0)
-    slider.BackgroundTransparency = 1
-    slider.Font = Enum.Font.GothamBold
-    slider.TextSize = 14
-    slider.TextColor3 = Color3.fromRGB(255,255,255)
-    slider.Text = name..": "..farmDistance
-    slider.Parent = frame
-
-    local dragging = false
-    frame.InputBegan:Connect(function(input)
+    label.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    frame.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mouse = UserInputService:GetMouseLocation()
-            local relativeX = math.clamp(mouse.X - frame.AbsolutePosition.X, 0, frame.AbsoluteSize.X)
-            farmDistance = math.floor(min + (relativeX / frame.AbsoluteSize.X) * (max - min))
-            slider.Text = name..": "..farmDistance
-        end
-    end)
-end
-
-createSlider("Farm Distance", 1, 60, 220)
-
-----------------------------------------------------
--- 🔻 Farm + Attack Logic
-----------------------------------------------------
-local autoFarmEnabled = false
-local farmNearestEnabled = false
-local autoAttackEnabled = false
-
--- Toggle integration
-toggles["Auto Farm"].MouseButton1Click:Connect(function()
-    autoFarmEnabled = not autoFarmEnabled
-end)
-toggles["Farm Nearest"].MouseButton1Click:Connect(function()
-    farmNearestEnabled = not farmNearestEnabled
-end)
-toggles["Auto Attack"].MouseButton1Click:Connect(function()
-    autoAttackEnabled = not autoAttackEnabled
-end)
-
-local function getNearestNPC()
-    local nearest = nil
-    local dist = math.huge
-    if workspace:FindFirstChild("Enemies") then
-        for _, npc in pairs(workspace.Enemies:GetChildren()) do
-            if npc:FindFirstChild("HumanoidRootPart") then
-                local d = (hrp.Position - npc.HumanoidRootPart.Position).Magnitude
-                if d < dist and d <= farmDistance then
-                    dist = d
-                    nearest = npc
+            state = not state
+            if state then
+                for i, option in ipairs(options) do
+                    local opt = Instance.new("TextButton")
+                    opt.Name = option
+                    opt.Size = UDim2.new(0, 140, 0, 28)
+                    opt.Position = UDim2.new(0, 30, 0, posY + 28 * i)
+                    opt.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                    opt.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    opt.TextSize = 14
+                    opt.Font = Enum.Font.Gotham
+                    opt.Text = option
+                    opt.Parent = main
+                    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 6)
+                    opt.MouseButton1Click:Connect(function()
+                        selectedWeapon = option
+                        label.Text = name .. ": " .. selectedWeapon
+                        for _, child in ipairs(main:GetChildren()) do
+                            if child:IsA("TextButton") and table.find(options, child.Name) then
+                                child:Destroy()
+                            end
+                        end
+                        state = false
+                    end)
+                end
+            else
+                for _, child in ipairs(main:GetChildren()) do
+                    if child:IsA("TextButton") and table.find(options, child.Name) then
+                        child:Destroy()
+                    end
                 end
             end
         end
+    end)
+end
+
+createDropdown("Weapon", {"Melee Sword", "Katana", "Gun"}, 180)
+
+----------------------------------------------------
+-- 🔻 Slider for Distance
+----------------------------------------------------
+local slider = Instance.new("Frame")
+slider.Size = UDim2.new(0, 200, 0, 20)
+slider.Position = UDim2.new(0, 250, 0, 110)
+slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+slider.Parent = main
+Instance.new("UICorner", slider).CornerRadius = UDim.new(0, 6)
+
+local handle = Instance.new("Frame")
+handle.Size = UDim2.new(0, 20, 1, 0)
+handle.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+handle.Parent = slider
+Instance.new("UICorner", handle).CornerRadius = UDim.new(0, 6)
+
+local dragging = false
+handle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
     end
-    return nearest
-end
-
-local function attack(npc)
-    if not npc then return end
-    -- Example attack logic
-    print("Attacking NPC:", npc.Name, "with", selectedWeapon)
-end
-
-RunService.RenderStepped:Connect(function()
-    if autoFarmEnabled and farmNearestEnabled then
-        local npc = getNearestNPC()
-        if npc and autoAttackEnabled then
-            attack(npc)
-        end
+end)
+handle.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local pos = math.clamp(input.Position.X - slider.AbsolutePosition.X, 0, slider.AbsoluteSize.X)
+        handle.Position = UDim2.fromOffset(pos, 0)
+        farmDistance = math.floor((pos / slider.AbsoluteSize.X) * 100)
     end
 end)
 
 ----------------------------------------------------
--- 🔻 Open / Close Main UI
+-- 🔻 Click Events
 ----------------------------------------------------
 icon.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
 end)
+
 close.MouseButton1Click:Connect(function()
     main.Visible = false
 end)

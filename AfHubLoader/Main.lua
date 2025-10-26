@@ -106,11 +106,14 @@ local icon = Instance.new("TextButton")
 icon.Name = "ZenX_Hub_Icon"
 icon.Size = UDim2.fromOffset(56, 56)
 icon.Position = UDim2.new(1, -90, 0, 20)
-icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- black
-icon.Text = "ZenX Hub"
+icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+icon.Text = "ZenX"
 icon.Font = Enum.Font.GothamBlack
 icon.TextSize = 14
-icon.TextColor3 = Color3.fromRGB(255, 255, 255) -- white
+icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+icon.TextScaled = true
+icon.TextWrapped = true
+icon.ZIndex = 2
 icon.Parent = gui
 Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
 local iconStroke = Instance.new("UIStroke", icon)
@@ -125,6 +128,8 @@ main.BackgroundColor3 = COLORS.BG
 main.Visible = false
 main.Active = true
 main.Draggable = true
+main.ClipsDescendants = false
+main.ZIndex = 1
 main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 local mainStroke = Instance.new("UIStroke", main)
@@ -178,8 +183,7 @@ local function createToggle(name, posY)
     btn.Text = name .. ": OFF"
     btn.AutoButtonColor = false
     btn.Parent = main
-    local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     local stroke = Instance.new("UIStroke", btn)
     stroke.Color = Color3.fromRGB(255, 60, 60)
     stroke.Thickness = 2
@@ -207,9 +211,8 @@ createToggle("Auto Attack", 255)
 -- 🔻 Weapon Dropdown & Farm Distance Slider
 ----------------------------------------------------
 local selectedWeapon = "Melee Sword"
-local farmDistance = 20 -- default
+local farmDistance = 20
 
--- Weapon Dropdown
 local function createDropdown(name, options, posY)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0, 140, 0, 28)
@@ -221,8 +224,8 @@ local function createDropdown(name, options, posY)
     label.Text = name..": "..options[1]
     label.Parent = main
     Instance.new("UICorner", label).CornerRadius = UDim.new(0, 6)
-
     local selected = options[1]
+
     label.MouseButton1Click:Connect(function()
         local idx = table.find(options, selected)
         idx = (idx % #options) + 1
@@ -234,7 +237,6 @@ end
 
 createDropdown("Weapon", {"Melee Sword", "Sword", "Gun", "Blox Fruits"}, 180)
 
--- Farm Distance Slider
 local function createSlider(name, min, max, posY)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 140, 0, 28)
@@ -276,7 +278,7 @@ end
 createSlider("Farm Distance", 1, 60, 220)
 
 ----------------------------------------------------
--- 🔻 Farm Nearest + Auto Attack Logic
+-- 🔻 Farm + Attack Logic
 ----------------------------------------------------
 local autoFarmEnabled = false
 local farmNearestEnabled = false
@@ -296,12 +298,14 @@ end)
 local function getNearestNPC()
     local nearest = nil
     local dist = math.huge
-    for _, npc in pairs(workspace.Enemies:GetChildren()) do
-        if npc:FindFirstChild("HumanoidRootPart") then
-            local d = (hrp.Position - npc.HumanoidRootPart.Position).Magnitude
-            if d < dist and d <= farmDistance then
-                dist = d
-                nearest = npc
+    if workspace:FindFirstChild("Enemies") then
+        for _, npc in pairs(workspace.Enemies:GetChildren()) do
+            if npc:FindFirstChild("HumanoidRootPart") then
+                local d = (hrp.Position - npc.HumanoidRootPart.Position).Magnitude
+                if d < dist and d <= farmDistance then
+                    dist = d
+                    nearest = npc
+                end
             end
         end
     end
@@ -310,7 +314,7 @@ end
 
 local function attack(npc)
     if not npc then return end
-    -- Example attack; replace with your weapon logic
+    -- Example attack logic
     print("Attacking NPC:", npc.Name, "with", selectedWeapon)
 end
 
